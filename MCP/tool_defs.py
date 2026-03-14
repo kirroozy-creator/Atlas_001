@@ -1,6 +1,7 @@
 """
 ALT_LAS Engine - MCP Tool Definitions
-Schema definitions for all MCP tools including sprite management.
+Schema definitions for all MCP tools.
+Includes: map, content, sprite, effects, engine, scene, player, battle, save, batch, discover.
 """
 
 TOOLS = [
@@ -303,6 +304,279 @@ TOOLS = [
                 "quality": {"type": "string", "description": "Quality level (low, medium, high)", "default": "medium"}
             },
             "required": ["quality"]
+        }
+    },
+    # Engine Control
+    {
+        "name": "engine_status",
+        "description": "Get engine status: running state, FPS, current scene, debug mode.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "engine_pause",
+        "description": "Pause the game engine (stops scene updates, AI commands still processed).",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "engine_resume",
+        "description": "Resume the game engine after pause.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "engine_get_config",
+        "description": "Get engine configuration. Optionally filter by section.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "section": {"type": "string", "description": "Config section (window, render, gpu, etc.) or omit for full config"}
+            }
+        }
+    },
+    {
+        "name": "engine_set_config",
+        "description": "Update a configuration section with new values.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "section": {"type": "string", "description": "Config section to update"},
+                "values": {"type": "object", "description": "Key-value pairs to set"}
+            },
+            "required": ["section", "values"]
+        }
+    },
+    # Scene Management
+    {
+        "name": "scene_change",
+        "description": "Change to a different scene (menu, map, battle, dialogue).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "scene": {"type": "string", "description": "Scene name to switch to"}
+            },
+            "required": ["scene"]
+        }
+    },
+    {
+        "name": "scene_get_current",
+        "description": "Get the current active scene name and stack depth.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "scene_list",
+        "description": "List all registered scenes and identify the current one.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "scene_push",
+        "description": "Push a scene onto the stack (overlay, e.g. dialogue over map).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "scene": {"type": "string", "description": "Scene name to push"}
+            },
+            "required": ["scene"]
+        }
+    },
+    {
+        "name": "scene_pop",
+        "description": "Pop the top scene from the stack, returning to the previous one.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    # Player Control
+    {
+        "name": "player_get_position",
+        "description": "Get the player's current position and facing direction.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "player_move",
+        "description": "Move the player one tile in a direction. Respects collision.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "direction": {"type": "string", "description": "Direction: up, down, left, right"}
+            },
+            "required": ["direction"]
+        }
+    },
+    {
+        "name": "player_teleport",
+        "description": "Teleport the player to specific coordinates.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "x": {"type": "integer", "description": "Target X coordinate"},
+                "y": {"type": "integer", "description": "Target Y coordinate"}
+            },
+            "required": ["x", "y"]
+        }
+    },
+    {
+        "name": "player_get_stats",
+        "description": "Get player stats: HP, ATK, DEF, LV, EXP, gold, soul color, flags.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "player_set_stats",
+        "description": "Update player stats. Only provided fields are changed.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "hp": {"type": "integer", "description": "Current HP"},
+                "max_hp": {"type": "integer", "description": "Maximum HP"},
+                "attack": {"type": "integer", "description": "Attack power"},
+                "defense": {"type": "integer", "description": "Defense power"},
+                "level": {"type": "integer", "description": "Player level"},
+                "exp": {"type": "integer", "description": "Experience points"},
+                "gold": {"type": "integer", "description": "Gold amount"},
+                "soul_color": {"type": "string", "description": "Soul color (red, blue, etc.)"}
+            }
+        }
+    },
+    {
+        "name": "player_add_item",
+        "description": "Add an item to the player's inventory.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "item": {"type": "object", "description": "Item data (must have 'name' key, can include heal, damage, etc.)"}
+            },
+            "required": ["item"]
+        }
+    },
+    {
+        "name": "player_get_inventory",
+        "description": "Get the player's current inventory.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "player_set_flag",
+        "description": "Set a game flag on the player (for story progression, etc.).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "flag": {"type": "string", "description": "Flag name"},
+                "value": {"type": "boolean", "description": "Flag value", "default": True}
+            },
+            "required": ["flag"]
+        }
+    },
+    # Battle Control
+    {
+        "name": "battle_start",
+        "description": "Start a battle against a named enemy character.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "enemy": {"type": "string", "description": "Character name (must exist in content)"}
+            },
+            "required": ["enemy"]
+        }
+    },
+    {
+        "name": "battle_action",
+        "description": "Execute a battle menu action (fight, act, item, mercy).",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "action": {"type": "string", "description": "Action: fight, act, item, mercy"}
+            },
+            "required": ["action"]
+        }
+    },
+    {
+        "name": "battle_get_state",
+        "description": "Get the current battle state: phase, HP, enemy info, soul position.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    # Save/Load
+    {
+        "name": "save_game",
+        "description": "Save the current game state to a named slot.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "slot": {"type": "string", "description": "Save slot name", "default": "autosave"}
+            }
+        }
+    },
+    {
+        "name": "load_game",
+        "description": "Load a saved game from a named slot.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "slot": {"type": "string", "description": "Save slot name"}
+            },
+            "required": ["slot"]
+        }
+    },
+    {
+        "name": "list_saves",
+        "description": "List all available save files.",
+        "inputSchema": {"type": "object", "properties": {}}
+    },
+    {
+        "name": "delete_save",
+        "description": "Delete a save file by slot name.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "slot": {"type": "string", "description": "Save slot to delete"}
+            },
+            "required": ["slot"]
+        }
+    },
+    # Batch & Discovery
+    {
+        "name": "batch_execute",
+        "description": "Execute multiple commands in a single call. Max 50 commands per batch.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "commands": {
+                    "type": "array",
+                    "description": "List of {tool, args} objects to execute sequentially",
+                    "items": {
+                        "type": "object",
+                        "properties": {
+                            "tool": {"type": "string"},
+                            "args": {"type": "object"}
+                        },
+                        "required": ["tool"]
+                    }
+                }
+            },
+            "required": ["commands"]
+        }
+    },
+    {
+        "name": "discover",
+        "description": "Discover all available tools, their schemas, and categories. Use this to learn what the engine can do.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "category": {"type": "string", "description": "Filter by category (map, content, sprite, effects, engine, scene, player, battle, save)"}
+            }
+        }
+    },
+    # Content extras
+    {
+        "name": "get_dialogue",
+        "description": "Get dialogue data by name.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"name": {"type": "string"}},
+            "required": ["name"]
+        }
+    },
+    {
+        "name": "get_character",
+        "description": "Get character data by name.",
+        "inputSchema": {
+            "type": "object",
+            "properties": {"name": {"type": "string"}},
+            "required": ["name"]
         }
     }
 ]

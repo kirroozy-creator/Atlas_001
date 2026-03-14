@@ -15,6 +15,7 @@ from typing import Optional
 
 from Source.Rendering.layer_manager import create_layer_manager, get_layer_manager
 from Source.Rendering.terminal_detect import get_terminal_capability, RenderMode
+from Source.Core.command_queue import get_command_queue
 
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
@@ -132,8 +133,11 @@ class GameEngine:
         self.title = self.config["window"]["title"]
         self.fps = self.config["window"]["fps"]
         self.is_running = False
+        self._paused = False
         self.state_manager = None
         self.debug_mode = False
+        self._command_queue = get_command_queue()
+        self._api_server = None
         self.delta_time = 0.0
         self._last_time = 0.0
         self._input_handler = InputHandler()
@@ -179,11 +183,32 @@ class GameEngine:
             if self.state_manager and self.state_manager.current_scene:
                 self.state_manager.current_scene.handle_input(key)
 
+    def _process_command_queue(self) -> None:
+        """Process pending commands from the AI command queue."""
+        commands = self._command_queue.pop_all()
+        for cmd in commands:
+            try:
+                if self._api_server and self._api_server.router:
+                    result = self._api_server.router.execute(cmd.tool, cmd.args)
+                else:
+                    from Source.API.response import error as api_error
+                    result = api_error("NO_ROUTER", "API router not initialized")
+                cmd.set_result(result)
+            except Exception as e:
+                from Source.API.response import error as api_error
+                cmd.set_result(api_error("ENGINE_ERROR", str(e)))
+
     def update(self) -> None:
         """Update game state."""
         now = time.time()
         self.delta_time = now - self._last_time
         self._last_time = now
+
+        # Process AI commands every frame
+        self._process_command_queue()
+
+        if self._paused:
+            return
 
         if self.state_manager and self.state_manager.current_scene:
             self.state_manager.current_scene.update(self.delta_time)
@@ -206,6 +231,21 @@ class GameEngine:
 
         self._layer_manager.render()
 
+    def start_api_server(self, content) -> None:
+        """Start the REST API server for AI control."""
+        try:
+            from Source.API.router import CommandRouter
+            from Source.API.server import APIServer
+            from Source.API.handlers.engine_handlers import set_engine
+
+            set_engine(self)
+            router = CommandRouter(content)
+            self._api_server = APIServer.from_config(router)
+            self._api_server.router = router
+            self._api_server.start()
+        except Exception as e:
+            print(f"[Engine] Failed to start API server: {e}")
+
     def run(self) -> None:
         """Main game loop."""
         self.initialize()
@@ -223,6 +263,8 @@ class GameEngine:
     def shutdown(self) -> None:
         """Clean up and restore terminal."""
         self.is_running = False
+        if self._api_server:
+            self._api_server.stop()
         if self._layer_manager:
             self._layer_manager.shutdown()
         self._input_handler.shutdown()

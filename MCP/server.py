@@ -1,7 +1,9 @@
 """
 ALT_LAS Engine - MCP Server
 Model Context Protocol server for AI-driven game management.
-Allows AI to create maps, add NPCs, manage dialogues, manage sprites, and test scenes.
+Now uses the unified API router for all tool execution.
+Supports 40+ tools across 9 categories: map, content, sprite, effects,
+engine, scene, player, battle, save + batch/discover.
 """
 
 import json
@@ -12,10 +14,14 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, BASE_DIR)
 
 from Source.Core.content_loader import ContentLoader
+from Source.API.router import CommandRouter
 from MCP.tool_defs import TOOLS
 
 content = ContentLoader()
 content.load_all()
+
+# Use the unified router for all tool execution
+router = CommandRouter(content)
 
 
 def send_response(request_id, result):
@@ -653,14 +659,11 @@ def handle_request(request):
     elif method == "tools/call":
         tool_name = params.get("name", "")
         tool_args = params.get("arguments", {})
-        handler = TOOL_HANDLERS.get(tool_name)
-        if handler:
-            result = handler(tool_args)
-            send_response(req_id, {
-                "content": [{"type": "text", "text": json.dumps(result, indent=2)}]
-            })
-        else:
-            send_error(req_id, -32601, f"Unknown tool: {tool_name}")
+        # Use unified router for all tools (new + legacy)
+        result = router.execute(tool_name, tool_args)
+        send_response(req_id, {
+            "content": [{"type": "text", "text": json.dumps(result, indent=2)}]
+        })
     elif method == "notifications/initialized":
         pass
     else:

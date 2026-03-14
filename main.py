@@ -38,6 +38,10 @@ def main():
     state_manager.register_scene("dialogue", dialogue)
 
     state_manager.change_scene("menu")
+
+    # Start API server for AI control
+    engine.start_api_server(content)
+
     engine.run()
 
 
